@@ -593,7 +593,7 @@ int main()
 	while ( flg->fExit == OFF ) {
 		InitFlags (&flg);
 		primary = (struct frame *)malloc(sizeof(struct frame));
-		printf ("%s  @ ", getcwd(NULL, 0) );
+		printf ("%s @ ", getcwd(NULL, 0) );
 		flg->fExit = ReadCommand (&primary, &flg);
 		if ( flg->fError == OFF )
 			Callout(primary, &flg);
