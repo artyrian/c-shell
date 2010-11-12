@@ -70,6 +70,31 @@ struct file
 	char *Out;
 };
 
+
+
+void InitFlags(struct checkers *flg)
+{
+	flg->fExit = OFF;
+	flg->fError = OFF;
+	flg->fMyCmd = OFF;
+	flg->fBg = OFF;
+	flg->fEnter = OFF;
+	flg->fWordOut = OFF;
+	flg->fbslash = OFF;
+	flg->fquote = OFF;
+	flg->fstick = OFF;
+	flg->fRead = OFF;
+	flg->fWrite = OFF;
+	flg->fAppend = OFF;
+	flg->fSpec = OFF;
+	flg->fNextSpec = OFF;
+	flg->NumRead = -1;
+	flg->NumWrite = -1;
+}
+
+
+
+
 /* Extend buffer (linear) */
 void extend_buffer (struct buffer ** buf)
 {
@@ -185,13 +210,13 @@ void NextSpecSymbTable(struct checkers *flg, struct frame *p, int c)
 
 
 /* At end of read each symbol do this */
-void actionend(int *last_c, int c, struct checkers  *flg, struct frame **p)
+void actionend(int *last_c, int c, struct checkers  *flg, struct frame *p)
 {
 	if (flg->fSpec){
 		if (flg->fNextSpec)
-			NextSpecSymbTable(flg, *p, c);	
+			NextSpecSymbTable(flg, p, c);	
 		else 
-			SpecSymbTable(flg, *p, c);
+			SpecSymbTable(flg, p, c);
 	}
 	if (*last_c == '\\')
 		*last_c = EOF;
@@ -396,33 +421,34 @@ void WordSpec (struct checkers *flg, struct frame *primary,
 
 
 /* Diff. situations */
-int ReadCommand(struct frame **primary, struct checkers **flg)
+int ReadCommand(struct frame *primary, struct checkers *flg)
 {
 	struct buffer * buf; 
 	int c , cb = ' ';		// cb - c before
 
+	InitFlags (flg);
 	InitBuf(&buf);
-	(*primary)->count = 0;
-	(*primary)->first = (*primary)->last = NULL;
+	(primary)->count = 0;
+	(primary)->first = (primary)->last = NULL;
 
-	while ( ( (*flg)->fEnter == OFF) && (c = getchar()) ){
+	while ( ( (flg)->fEnter == OFF) && (c = getchar()) ){
 		if ( c == EOF)//
-			cEOF (*flg, &c);
-		if ( (*flg)->fbslash == OFF )  //&
-			BSlashOff (c, *flg);
-		if ( !((*flg)->fbslash + (*flg)->fquote) )
-			WordSpec (*flg, *primary, c, cb);
-		if ( !((*flg)->fbslash+(*flg)->fquote)) //&
-			WordOut(*primary, &buf,	c, cb, *flg);
-		if ( (*flg)->fWordOut == OFF)
-			WordIn(&buf, c, *flg);
-		if ( (*flg)->fquote == !OFF )
-			(*flg)->fError = QuoteEnabled (c);
-		actionend(&cb, c, *flg, primary);
+			cEOF (flg, &c);
+		if ( (flg)->fbslash == OFF )  //&
+			BSlashOff (c, flg);
+		if ( !((flg)->fbslash + (flg)->fquote) )
+			WordSpec (flg, primary, c, cb);
+		if ( !((flg)->fbslash+(flg)->fquote)) //&
+			WordOut(primary, &buf,	c, cb, flg);
+		if ( (flg)->fWordOut == OFF)
+			WordIn(&buf, c, flg);
+		if ( (flg)->fquote == !OFF )
+			(flg)->fError = QuoteEnabled (c);
+		actionend(&cb, c, flg, primary);
 	}
-	MyCmd(*primary, *flg);
+	MyCmd(primary, flg);
 	FreeBuf (&buf);	
-	return (*flg)->fExit;
+	return (flg)->fExit;
 }
 
 
@@ -547,27 +573,6 @@ void waitzombie ()
 
 
 
-void InitFlags(struct checkers **flg)
-{
-	(*flg)->fExit = OFF;
-	(*flg)->fError = OFF;
-	(*flg)->fMyCmd = OFF;
-	(*flg)->fBg = OFF;
-	(*flg)->fEnter = OFF;
-	(*flg)->fWordOut = OFF;
-	(*flg)->fbslash = OFF;
-	(*flg)->fquote = OFF;
-	(*flg)->fstick = OFF;
-	(*flg)->fRead = OFF;
-	(*flg)->fWrite = OFF;
-	(*flg)->fAppend = OFF;
-	(*flg)->fSpec = OFF;
-	(*flg)->fNextSpec = OFF;
-	(*flg)->NumRead = -1;
-	(*flg)->NumWrite = -1;
-}
-
-
 
 void printflg (struct checkers *flg)
 {
@@ -591,10 +596,9 @@ int main()
 	flg = (struct checkers*)malloc(sizeof(struct checkers));
 	flg->fExit = OFF;
 	while ( flg->fExit == OFF ) {
-		InitFlags (&flg);
 		primary = (struct frame *)malloc(sizeof(struct frame));
 		printf ("%s @ ", getcwd(NULL, 0) );
-		flg->fExit = ReadCommand (&primary, &flg);
+		flg->fExit = ReadCommand (primary, flg);
 		if ( flg->fError == OFF )
 			Callout(primary, &flg);
 		else
