@@ -72,6 +72,7 @@ struct checkers
 	int nextSpec;
 	int numRead;
 	int numWrite;
+	int numPipe;
 };
 
 
@@ -102,6 +103,7 @@ void InitFlags(struct checkers *flg)
 	flg->nextSpec = OFF;
 	flg->numRead = -1;
 	flg->numWrite = -1;
+	flg->numPipe = 0;
 }
 
 
@@ -282,6 +284,7 @@ void ActionEnd(int *last_c, int c,
 	if ( flg->stick ){
 		CreateRing (g);	
 		flg->stick = OFF;
+		flg->numPipe ++;
 		FreeBuf (buf);
 		InitBuf (buf);
 	}
@@ -455,10 +458,7 @@ void WordSpec (struct checkers *flg, struct frame *primary,
 	}
 }
 
-void prnd (int a)
-{
-	printf ("%d\n", a);
-}
+
 
 /* Diff. situations */
 void ReadCommand(struct all *g,
@@ -481,6 +481,7 @@ void ReadCommand(struct all *g,
 		if ( !(flg->bslash+flg->quote)) //&
 			WordOut(g->first->cmd, &buf, c, cb, flg);
 		if ( flg->wordOut == OFF)
+		//free ((*g)->first->next);
 			WordIn(&buf, c, flg);
 		if ( flg->quote == !OFF )
 			QuoteEnabled (c, flg);
@@ -488,6 +489,7 @@ void ReadCommand(struct all *g,
 	}
 	MyCmd(g->first->cmd, flg);
 	FreeBuf (&buf);	
+	printf ("numPipe=%d\n", flg->numPipe);
 }
 
 
@@ -636,16 +638,53 @@ void FreeLng (struct all **g)
 {
 	struct lng *tmp = (*g)->first;
 	while (tmp != NULL) {
-		printf ("<\n");
 		tmp = (*g)->first->next;//-
 		FreeList ((*g)->first->cmd);//+
-		//free ((*g)->first->next);
 		free ((*g)->first);//-
 		(*g)->first = tmp;//-
-		printf (">\n");
 	}
 	free ((*g));//-
 }
+
+
+
+void PipeStart (struct all *g, struct checkers *flg)
+{
+	int pid, status;
+	int fd[flg->numPipe][2];
+	int i;
+
+	if ( !(flg)->myCmd)
+		if ( !(pid = fork() ) ){
+
+			for ( i = 0; i <= flg->numPipe; i++ ){
+				if ( i != flg->numPipe )
+					pipe (fd[i]);
+				if ( fork () ) {
+					if ( i )
+						dup2 (fd[i-1][0],0);
+					printf ("close input\n");
+					close(fd[i-1][0]);
+					if ( i != flg->numPipe )
+						dup2 ( fd[i][1], 1);
+					close (fd[i][1]);
+					execcmd (g->first->cmd, flg);
+				} else {
+					if ( i != flg->numPipe){
+						printf ("close output\n");
+						close ( fd [i][1] );
+					}
+				}
+				g->first = g->first->next;
+			}
+			exit (1);
+		}
+	
+	if ( !(flg)->bg )
+		waitpid (pid, &status, 0);
+}
+
+
 
 
 /* Main function */
@@ -663,7 +702,8 @@ int main()
 		printf ("%s @ ", getcwd(NULL, 0) );
 		ReadCommand (general, flg);
 		if ( flg->error == OFF )
-			Callout(general->first, flg);
+			PipeStart (general, flg);
+		//	Callout(general->first, flg);
 		FreeLng (&general);
 		waitzombie ();
 		printf ("\n");
