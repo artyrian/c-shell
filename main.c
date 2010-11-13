@@ -654,33 +654,32 @@ void FreeLng (struct all **g)
 
 void PipeStart (struct all *g, struct checkers *flg)
 {
-	int pid, status;
+	int pid, pidp, status;
 	int fd[flg->numPipe][2];
 	int i;
 
 	if ( !(flg)->myCmd)
 		if ( !(pid = fork() ) ){
 
-			for ( i = 0; i <= flg->numPipe; i++ ){
+			for ( i = 0; i < flg->numPipe+1; i++ ){
 				if ( i != flg->numPipe )
 					pipe (fd[i]);
-				if ( fork () ) {
+				if ( !(pidp=fork()) ) {
 					if ( i )
 						dup2 (fd[i-1][0],0);
 					if ( i != flg->numPipe )
 						dup2 ( fd[i][1], 1);
-					close (fd[i][1]);
 					execcmd (g->first->cmd, flg);
 				} else {
 					if ( i != flg->numPipe){
 						close ( fd [i][1] );
 					}
+						waitpid (pidp, &status, 0);
 				}
 				g->first = g->first->next;
 			}
 			exit (1);
 		}
-	
 	if ( !(flg)->bg )
 		waitpid (pid, &status, 0);
 }
@@ -693,23 +692,22 @@ int main()
 {
 	struct checkers *flg;
 	struct all *general;
-
-	printf ("Version:%d.\n", VERSION_NUMBER);
+	char *cwd = getcwd(NULL, 0);
+	int i=0;
 
 	flg = (struct checkers*)malloc(sizeof(struct checkers));
 	flg->exit = OFF;
 	while ( flg->exit == OFF ) {
-		general = (struct all*)malloc(sizeof(struct all));	
-		printf ("%s @ ", getcwd(NULL, 0) );
+		general = (struct all*)malloc(sizeof(struct all));
+		printf ("\n%s %d @ ", cwd, i++ );
 		ReadCommand (general, flg);
 		if ( flg->error == OFF ){
 			PipeStart (general, flg);
-		//	Callout(general->first, flg);
 		}
 		FreeLng (&general);
 		waitzombie ();
-		printf ("\n");
 	}
+	free (cwd);
 	free (flg);
 	return 0;
 }
