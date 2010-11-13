@@ -45,6 +45,7 @@ struct lng
 struct all
 {
 	struct lng *first;
+	struct lng *last;
 };
 /* Structure of massive of pointers*/
 struct masptr
@@ -247,22 +248,26 @@ void FreeList (struct frame *primary)
 
 
 
-void InitPrimary (struct all *g, struct lng *oldg)
+void InitPrimary (struct all *g)
 {
 	g->first = (struct lng*)malloc(sizeof(struct lng));
+	g->last = (struct lng*)malloc(sizeof(struct lng));
 	g->first->cmd = (struct frame*)malloc (sizeof(struct frame));
-	g->first->next = oldg;
 	g->first->cmd->count = 0;
 	g->first->cmd->first = g->first->cmd->last = NULL;
+	g->first->next = NULL;
+	g->last = g->first;
 }
 
 void CreateRing (struct all *g)
 {
-	struct all *tmpg = g; 
-
-	InitPrimary (tmpg, g->first);
-	
-	g->first = tmpg->first;
+	struct lng *tmp = (struct lng*)malloc(sizeof(struct lng));	
+	tmp->cmd = (struct frame*)malloc (sizeof(struct frame));
+	tmp->cmd->count = 0;
+	tmp->cmd->first = tmp->cmd->last = NULL;
+	tmp->next = NULL;
+	g->last->next = tmp;  
+	g->last = tmp;
 }
 
 /* At end of read each symbol do this */
@@ -469,7 +474,7 @@ void ReadCommand(struct all *g,
 
 	InitFlags (flg);
 	InitBuf(&buf);
-	InitPrimary(g, NULL);
+	InitPrimary(g);
 
 	while ( ( (flg)->enter == OFF) && (c = getchar()) ){
 		if ( c == EOF)//
@@ -479,7 +484,7 @@ void ReadCommand(struct all *g,
 		if ( !(flg->bslash + flg->quote) )
 			WordSpec (flg, g->first->cmd, c, cb);
 		if ( !(flg->bslash+flg->quote)) //&
-			WordOut(g->first->cmd, &buf, c, cb, flg);
+			WordOut(g->last->cmd, &buf, c, cb, flg);
 		if ( flg->wordOut == OFF)
 		//free ((*g)->first->next);
 			WordIn(&buf, c, flg);
@@ -489,7 +494,6 @@ void ReadCommand(struct all *g,
 	}
 	MyCmd(g->first->cmd, flg);
 	FreeBuf (&buf);	
-	printf ("numPipe=%d\n", flg->numPipe);
 }
 
 
@@ -663,15 +667,12 @@ void PipeStart (struct all *g, struct checkers *flg)
 				if ( fork () ) {
 					if ( i )
 						dup2 (fd[i-1][0],0);
-					printf ("close input\n");
-					close(fd[i-1][0]);
 					if ( i != flg->numPipe )
 						dup2 ( fd[i][1], 1);
 					close (fd[i][1]);
 					execcmd (g->first->cmd, flg);
 				} else {
 					if ( i != flg->numPipe){
-						printf ("close output\n");
 						close ( fd [i][1] );
 					}
 				}
@@ -701,9 +702,10 @@ int main()
 		general = (struct all*)malloc(sizeof(struct all));	
 		printf ("%s @ ", getcwd(NULL, 0) );
 		ReadCommand (general, flg);
-		if ( flg->error == OFF )
+		if ( flg->error == OFF ){
 			PipeStart (general, flg);
 		//	Callout(general->first, flg);
+		}
 		FreeLng (&general);
 		waitzombie ();
 		printf ("\n");
