@@ -11,6 +11,7 @@
 #define OFF 0
 #define PART_SIZE 128
 #define COMMAND_EXIT "exit"
+#define VERSION_NUMBER 1
 
 /* Structure of list */
 struct list
@@ -34,6 +35,17 @@ struct frame
 	struct list *first;
 	struct list *last;
 };
+
+struct lng
+{
+	struct frame *cmd;
+	struct lng *next;
+};
+
+struct all
+{
+	struct lng *first;
+};
 /* Structure of massive of pointers*/
 struct masptr
 {
@@ -44,22 +56,22 @@ struct masptr
 /* Structure of flags (and maybe some ctrs) */
 struct checkers
 {
-	int fExit;	// flag-signal of Exit
-	int fError;	// flag-signal about error.
-	int fMyCmd;	// flag-signal of use my own cmd.
-	int fBg;	// flag-signal of turn on backgorund.
-	int fEnter;	// flag-signal of pressed button "Enter".
-	int fWordOut;	// flag-signal that u not in word.
-	int fbslash;	// flag-signal last symbol os '\'.
-	int fquote;	// flaf-signal u in the quotes.
-	int fstick;	// flag-signal use conveer.
-	int fRead;	// flag to Read from file and send to shell.
-	int fWrite;	// flag to Write to file and send to shell.
-	int fAppend;	// flag to Append to file and send to shell.
-	int fSpec;
-	int fNextSpec;
-	int NumRead;
-	int NumWrite;
+	int exit;	// flag-signal of Exit
+	int error;	// flag-signal about error.
+	int myCmd;	// flag-signal of use my own cmd.
+	int bg;		// flag-signal of turn on backgorund.
+	int enter;	// flag-signal of pressed button "Enter".
+	int wordOut;	// flag-signal that u not in word.
+	int bslash;	// flag-signal last symbol os '\'.
+	int quote;	// flaf-signal u in the quotes.
+	int stick;	// flag-signal use conveer.
+	int read;	// flag to Read from file and send to shell.
+	int write;	// flag to Write to file and send to shell.
+	int append;	// flag to Append to file and send to shell.
+	int spec;
+	int nextSpec;
+	int numRead;
+	int numWrite;
 };
 
 
@@ -74,22 +86,22 @@ struct file
 
 void InitFlags(struct checkers *flg)
 {
-	flg->fExit = OFF;
-	flg->fError = OFF;
-	flg->fMyCmd = OFF;
-	flg->fBg = OFF;
-	flg->fEnter = OFF;
-	flg->fWordOut = OFF;
-	flg->fbslash = OFF;
-	flg->fquote = OFF;
-	flg->fstick = OFF;
-	flg->fRead = OFF;
-	flg->fWrite = OFF;
-	flg->fAppend = OFF;
-	flg->fSpec = OFF;
-	flg->fNextSpec = OFF;
-	flg->NumRead = -1;
-	flg->NumWrite = -1;
+	flg->exit = OFF;
+	flg->error = OFF;
+	flg->myCmd = OFF;
+	flg->bg = OFF;
+	flg->enter = OFF;
+	flg->wordOut = OFF;
+	flg->bslash = OFF;
+	flg->quote = OFF;
+	flg->stick = OFF;
+	flg->read = OFF;
+	flg->write = OFF;
+	flg->append = OFF;
+	flg->spec = OFF;
+	flg->nextSpec = OFF;
+	flg->numRead = -1;
+	flg->numWrite = -1;
 }
 
 
@@ -160,27 +172,35 @@ void InitBuf(struct buffer ** buf)
 }
 
 
+/* Dispose buffer */
+void FreeBuf (struct buffer **buf)
+{
+	free ( (*buf)->str );
+	free (*buf);
+}
+
+
 
 
 void SpecSymbTable(struct checkers *flg, struct frame *p, int c)
 {
 	switch(c){
 		case '>': { 
-			flg->fWrite = !OFF;		
-			flg->NumWrite = p->count;
+			flg->write = !OFF;		
+			flg->numWrite = p->count;
 			break;
 		}	
 		case '<': {
-			flg->fRead = !OFF;		
-			flg->NumRead = p->count;
+			flg->read = !OFF;		
+			flg->numRead = p->count;
 			break;
 		}	
 		case '&': {
-			flg->fBg = !OFF;		
+			flg->bg = !OFF;		
 			break;
 		}	
 		case '|': {
-			flg->fstick = !OFF;		
+			flg->stick = !OFF;		
 			break;
 		}
 	}
@@ -192,8 +212,8 @@ void NextSpecSymbTable(struct checkers *flg, struct frame *p, int c)
 {
 	switch(c){
 		case '>':{ 
-			flg->fAppend = !OFF;		
-			flg->NumWrite = p->count;
+			flg->append = !OFF;		
+			flg->numWrite = p->count;
 			break;
 		}
 		case '&':{ 
@@ -204,38 +224,6 @@ void NextSpecSymbTable(struct checkers *flg, struct frame *p, int c)
 			//flg->fstick = !OFF;		
 			break;
 		}
-	}
-}
-
-
-
-/* At end of read each symbol do this */
-void actionend(int *last_c, int c, struct checkers  *flg, struct frame *p)
-{
-	if (flg->fSpec){
-		if (flg->fNextSpec)
-			NextSpecSymbTable(flg, p, c);	
-		else 
-			SpecSymbTable(flg, p, c);
-	}
-	if (*last_c == '\\')
-		*last_c = EOF;
-	else
-		*last_c = c;
-	flg->fWordOut = OFF;
-}
-
-
-
-
-/* Print a list */
-void print ( struct frame *primary)
-{
-	struct list * tmp = primary->first;
-	while (tmp != NULL) {
-		printf ("[%s]\n", primary->first->str );
-		tmp = (primary->first)->next;
-		primary->first = tmp;
 	}
 }
 
@@ -257,28 +245,76 @@ void FreeList (struct frame *primary)
 
 
 
-/* Dispose buffer */
-void FreeBuf (struct buffer **buf)
+void InitPrimary (struct all *g, struct lng *oldg)
 {
-	free ( (*buf)->str );
-	free (*buf);
+	g->first = (struct lng*)malloc(sizeof(struct lng));
+	g->first->cmd = (struct frame*)malloc (sizeof(struct frame));
+	g->first->next = oldg;
+	g->first->cmd->count = 0;
+	g->first->cmd->first = g->first->cmd->last = NULL;
 }
+
+void CreateRing (struct all *g)
+{
+	struct all *tmpg = g; 
+
+	InitPrimary (tmpg, g->first);
+	
+	g->first = tmpg->first;
+}
+
+/* At end of read each symbol do this */
+void ActionEnd(int *last_c, int c,
+		struct checkers  *flg,
+		struct all *g,
+		struct buffer **buf)
+{
+	if (flg->spec){
+		if (flg->nextSpec)
+			NextSpecSymbTable(flg, g->first->cmd, c);	
+		else 
+			SpecSymbTable(flg, g->first->cmd, c);
+	}
+	if (*last_c == '\\')
+		*last_c = EOF;
+	else
+		*last_c = c;
+	if ( flg->stick ){
+		CreateRing (g);	
+		flg->stick = OFF;
+		FreeBuf (buf);
+		InitBuf (buf);
+	}
+	flg->wordOut = OFF;
+}
+
+
+
+
+/* Print a list */
+void print ( struct frame *primary)
+{
+	struct list * tmp = primary->first;
+	while (tmp != NULL) {
+		printf ("[%s]\n", primary->first->str );
+		tmp = (primary->first)->next;
+		primary->first = tmp;
+	}
+}
+
 
 
 
 /* If Quote Enabled check c of EOF and Enter, then tell about result 
  */
-int QuoteEnabled (int c)
+void QuoteEnabled (int c, struct checkers *flg)
 {	
-	int fErr;
 	if ( c == '\n')
 		printf ("> ");
 	if ( c == EOF ) {
 		printf ("\nExpected quotes!\n ");
-		fErr = !OFF;
-		return !OFF;
+		flg->error = !OFF;
 	}
-	return OFF;
 }
 
 
@@ -289,11 +325,11 @@ int QuoteEnabled (int c)
 void BSlashOff (int c, struct checkers *flg)
 {
 	if (c == '"') {
-		flg->fquote = ! flg->fquote;
-		flg->fWordOut = !OFF;
+		flg->quote = ! flg->quote;
+		flg->wordOut = !OFF;
 	}
 	if (c == '\\')
-		flg->fbslash = flg->fWordOut = !OFF;
+		flg->bslash = flg->wordOut = !OFF;
 }
 
 
@@ -305,15 +341,15 @@ void WordOut (struct frame *primary, struct buffer **buf,
 {
 	if (c == '\n'){
 		parse_word (primary, buf, cb);
-		flg->fEnter = flg->fWordOut = !OFF;
+		flg->enter = flg->wordOut = !OFF;
 	}
 	if (( c == ' ') || (c == '\t')){
 		parse_word (primary, buf, cb);
-		flg->fWordOut = !OFF;
+		flg->wordOut = !OFF;
 	}
-	if (c == '>' || c == '<' ) {
+	if (c == '>' || c == '<' || c == '|') {
 		parse_word (primary, buf, cb);
-		flg->fWordOut = !OFF;
+		flg->wordOut = !OFF;
 	}
 }
 
@@ -322,10 +358,10 @@ void WordOut (struct frame *primary, struct buffer **buf,
 /* If "In Word" - work WordIn() */
 void WordIn (struct buffer **buf, char c, struct checkers *flg)
 {
-	if ( flg->fBg == !OFF)
-		flg->fError = !OFF;
+	if ( flg->bg == !OFF)
+		flg->error = !OFF;
 	add_to_buf(buf, c);
-	flg->fbslash = OFF;
+	flg->bslash = OFF;
 }
 
 
@@ -334,7 +370,7 @@ void WordIn (struct buffer **buf, char c, struct checkers *flg)
  */
 void cEOF (struct checkers *flg, int *c)
 {
-	flg->fExit = flg->fEnter = flg->fWordOut = !OFF;
+	flg->exit = flg->enter = flg->wordOut = !OFF;
 	*c = ' ';
 	printf ("\n");
 }
@@ -377,7 +413,7 @@ int changedir(char *path, int ctr)
  */
 int cmdexit(struct checkers *flg)
 {	
-	flg->fMyCmd = !OFF;
+	flg->myCmd = !OFF;
 	return !OFF;
 }
 
@@ -397,10 +433,10 @@ void MyCmd (struct frame *primary, struct checkers *flg)
 			path = tp->first->str;
 		}
 		if ( !strcmp (cmd, "cd") )
-			flg->fMyCmd = changedir (path, ctr);
+			flg->myCmd = changedir (path, ctr);
 		if ( !strcmp (cmd, "exit") ){
-			flg->fExit = cmdexit (flg);
-			flg->fMyCmd = !OFF;
+			flg->exit = cmdexit (flg);
+			flg->myCmd = !OFF;
 		}
 	}
 	free (tp);
@@ -411,44 +447,47 @@ void MyCmd (struct frame *primary, struct checkers *flg)
 void WordSpec (struct checkers *flg, struct frame *primary,
 		int c, int cb)
 {
-	if ( flg->fSpec != OFF && (c == '>' || cb == '>'))
-		flg->fNextSpec = !OFF;
+	if ( flg->spec != OFF && (c == '>' || cb == '>'))
+		flg->nextSpec = !OFF;
 	if ( c == '&' || c == '|' || c == '>' || c == '<'){
-		flg->fSpec = !OFF;
-		flg->fWordOut = !OFF;
+		flg->spec = !OFF;
+		flg->wordOut = !OFF;
 	}
 }
 
+void prnd (int a)
+{
+	printf ("%d\n", a);
+}
 
 /* Diff. situations */
-int ReadCommand(struct frame *primary, struct checkers *flg)
+void ReadCommand(struct all *g,
+		struct checkers *flg)
 {
 	struct buffer * buf; 
 	int c , cb = ' ';		// cb - c before
 
 	InitFlags (flg);
 	InitBuf(&buf);
-	(primary)->count = 0;
-	(primary)->first = (primary)->last = NULL;
+	InitPrimary(g, NULL);
 
-	while ( ( (flg)->fEnter == OFF) && (c = getchar()) ){
+	while ( ( (flg)->enter == OFF) && (c = getchar()) ){
 		if ( c == EOF)//
 			cEOF (flg, &c);
-		if ( (flg)->fbslash == OFF )  //&
+		if ( flg->bslash == OFF )  //&
 			BSlashOff (c, flg);
-		if ( !((flg)->fbslash + (flg)->fquote) )
-			WordSpec (flg, primary, c, cb);
-		if ( !((flg)->fbslash+(flg)->fquote)) //&
-			WordOut(primary, &buf,	c, cb, flg);
-		if ( (flg)->fWordOut == OFF)
+		if ( !(flg->bslash + flg->quote) )
+			WordSpec (flg, g->first->cmd, c, cb);
+		if ( !(flg->bslash+flg->quote)) //&
+			WordOut(g->first->cmd, &buf, c, cb, flg);
+		if ( flg->wordOut == OFF)
 			WordIn(&buf, c, flg);
-		if ( (flg)->fquote == !OFF )
-			(flg)->fError = QuoteEnabled (c);
-		actionend(&cb, c, flg, primary);
+		if ( flg->quote == !OFF )
+			QuoteEnabled (c, flg);
+		ActionEnd (&cb, c, flg, g, &buf);
 	}
-	MyCmd(primary, flg);
+	MyCmd(g->first->cmd, flg);
 	FreeBuf (&buf);	
-	return (flg)->fExit;
 }
 
 
@@ -483,7 +522,7 @@ void WriteToFile (struct frame *primary, struct checkers *flg)
 	save1 = dup (1);
 
 	f->Out = primary->first->str;
-	if (!flg->fAppend)	
+	if (!flg->append)	
 		fd = open (f->Out, O_CREAT|O_WRONLY|O_TRUNC, 0666);
 	else	
 		fd = open (f->Out, O_CREAT|O_WRONLY|O_APPEND, 0666);
@@ -502,9 +541,9 @@ int Redir(struct checkers *flg)
 {
 	int fUse = 0;
 
-	if (flg->NumRead != -1)
+	if (flg->numRead != -1)
 		fUse--;
-	if (flg->NumWrite != -1)
+	if (flg->numWrite != -1)
 		fUse--;
 	return fUse;
 }
@@ -514,13 +553,12 @@ int Redir(struct checkers *flg)
 void Createmas(struct frame *primary, struct checkers *flg, char ***marg)
 {
 	int i = 0, j = 0;
-	struct file *f = (struct file*)malloc(sizeof(struct file));
 	(*marg) = (char**)malloc((primary->count+Redir(flg))*sizeof(char*));
 	while (primary->first != NULL) {
-		if ( flg->NumRead == j )
+		if ( flg->numRead == j )
 			ReadFromFile (primary, flg);	
 		else 
-			if ( flg->NumWrite == j )
+			if ( flg->numWrite == j )
 				WriteToFile (primary, flg);
 			else
 				(*marg)[i++] = primary->first->str;
@@ -528,7 +566,6 @@ void Createmas(struct frame *primary, struct checkers *flg, char ***marg)
 		j++;
 	}
 	(*marg)[i] = NULL;
-	free (f);
 }
 
 
@@ -549,14 +586,14 @@ void execcmd (struct frame *primary, struct checkers *flg)
 
 
 /* Call out programms */
-void Callout (struct frame *primary, struct checkers **flg)
+void Callout (struct lng *r, struct checkers *flg)
 {
 	int pid, status;
 
-	if ( !(*flg)->fMyCmd) {	
+	if ( !(flg)->myCmd) {	
 		if ( !(pid = fork() ) )
-			execcmd (primary, *flg);
-		if ( !(*flg)->fBg )
+			execcmd (r->cmd, flg);
+		if ( !(flg)->bg )
 			waitpid (pid, &status, 0);
 	}
 }
@@ -577,34 +614,58 @@ void waitzombie ()
 void printflg (struct checkers *flg)
 {
 	printf ("|=%d, R=%d, W=%d, A=%d, NR=%d, NW=%d\n",
-	flg->fstick,
-	flg->fRead,
-	flg->fWrite,
-	flg->fAppend,
-	flg->NumRead,
-	flg->NumWrite);
+	flg->stick,
+	flg->read,
+	flg->write,
+	flg->append,
+	flg->numRead,
+	flg->numWrite);
 }
 
+void PrintLng (struct all *g)
+{
+	while (g->first != NULL) {
+		printf ("{\n");
+		print (g->first->cmd);
+		g->first = g->first->next;
+		printf ("}\n");
+	}
+}
 
+void FreeLng (struct all **g)
+{
+	struct lng *tmp = (*g)->first;
+	while (tmp != NULL) {
+		printf ("<\n");
+		tmp = (*g)->first->next;//-
+		FreeList ((*g)->first->cmd);//+
+		//free ((*g)->first->next);
+		free ((*g)->first);//-
+		(*g)->first = tmp;//-
+		printf (">\n");
+	}
+	free ((*g));//-
+}
 
 
 /* Main function */
 int main()
 {
-	struct frame *primary; 
 	struct checkers *flg;
+	struct all *general;
+
+	printf ("Version:%d.\n", VERSION_NUMBER);
+
 	flg = (struct checkers*)malloc(sizeof(struct checkers));
-	flg->fExit = OFF;
-	while ( flg->fExit == OFF ) {
-		primary = (struct frame *)malloc(sizeof(struct frame));
+	flg->exit = OFF;
+	while ( flg->exit == OFF ) {
+		general = (struct all*)malloc(sizeof(struct all));	
 		printf ("%s @ ", getcwd(NULL, 0) );
-		flg->fExit = ReadCommand (primary, flg);
-		if ( flg->fError == OFF )
-			Callout(primary, &flg);
-		else
-			printf ("Error execute! Incorrect cmd.\n");
+		ReadCommand (general, flg);
+		if ( flg->error == OFF )
+			Callout(general->first, flg);
+		FreeLng (&general);
 		waitzombie ();
-		FreeList (primary);
 		printf ("\n");
 	}
 	free (flg);
