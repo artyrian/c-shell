@@ -259,7 +259,7 @@ void InitPrimary (struct all *g)
 	g->last = g->first;
 }
 
-void CreateRing (struct all *g)
+void CreateRing (struct all *g, struct checkers *flg)
 {
 	struct lng *tmp = (struct lng*)malloc(sizeof(struct lng));	
 	tmp->cmd = (struct frame*)malloc (sizeof(struct frame));
@@ -268,6 +268,9 @@ void CreateRing (struct all *g)
 	tmp->next = NULL;
 	g->last->next = tmp;  
 	g->last = tmp;
+
+	flg->stick = OFF;
+	flg->numPipe ++;
 }
 
 /* At end of read each symbol do this */
@@ -287,9 +290,7 @@ void ActionEnd(int *last_c, int c,
 	else
 		*last_c = c;
 	if ( flg->stick ){
-		CreateRing (g);	
-		flg->stick = OFF;
-		flg->numPipe ++;
+		CreateRing (g, flg);	
 		FreeBuf (buf);
 		InitBuf (buf);
 	}
@@ -466,8 +467,7 @@ void WordSpec (struct checkers *flg, struct frame *primary,
 
 
 /* Diff. situations */
-void ReadCommand(struct all *g,
-		struct checkers *flg)
+void ReadCommand(struct all *g, struct checkers *flg)
 {
 	struct buffer * buf; 
 	int c , cb = ' ';		// cb - c before
@@ -477,16 +477,15 @@ void ReadCommand(struct all *g,
 	InitPrimary(g);
 
 	while ( ( (flg)->enter == OFF) && (c = getchar()) ){
-		if ( c == EOF)//
+		if ( c == EOF)
 			cEOF (flg, &c);
-		if ( flg->bslash == OFF )  //&
+		if ( flg->bslash == OFF ) 
 			BSlashOff (c, flg);
 		if ( !(flg->bslash + flg->quote) )
 			WordSpec (flg, g->first->cmd, c, cb);
-		if ( !(flg->bslash+flg->quote)) //&
+		if ( !(flg->bslash+flg->quote))
 			WordOut(g->last->cmd, &buf, c, cb, flg);
 		if ( flg->wordOut == OFF)
-		//free ((*g)->first->next);
 			WordIn(&buf, c, flg);
 		if ( flg->quote == !OFF )
 			QuoteEnabled (c, flg);
@@ -514,9 +513,7 @@ void ReadFromFile (struct frame *primary, struct checkers *flg)
 		exit (1);
 	}
 	dup2(fd, 0);
-	close(fd);
-	free (f);
-}
+	close(fd); free (f); }
 
 
 void WriteToFile (struct frame *primary, struct checkers *flg)
@@ -651,33 +648,38 @@ void FreeLng (struct all **g)
 }
 
 
-
-void PipeStart (struct all *g, struct checkers *flg)
+void StartPipe (struct all *g, struct checkers *flg)
 {
-	int pid, pidp, status;
-	int fd[flg->numPipe][2];
-	int i;
+	int i, pid, status, fd[flg->numPipe][2];
+
+	for ( i = 0; i < flg->numPipe+1; i++ ){
+		if ( i != flg->numPipe )
+			pipe (fd[i]);
+		if ( !(pid = fork()) ) {
+			if ( i )
+				dup2 (fd[i-1][0],0);
+			if ( i != flg->numPipe )
+				dup2 ( fd[i][1], 1);
+			execcmd (g->first->cmd, flg);
+		} else {
+			if ( i != flg->numPipe){
+				close ( fd [i][1] );
+			}
+				waitpid (pid, &status, 0);
+		}
+		g->first = g->first->next;
+	}
+
+}
+
+void StartCmd (struct all *g, struct checkers *flg)
+{
+	int pid, status;
 
 	if ( !(flg)->myCmd)
-		if ( !(pid = fork() ) ){
-
-			for ( i = 0; i < flg->numPipe+1; i++ ){
-				if ( i != flg->numPipe )
-					pipe (fd[i]);
-				if ( !(pidp=fork()) ) {
-					if ( i )
-						dup2 (fd[i-1][0],0);
-					if ( i != flg->numPipe )
-						dup2 ( fd[i][1], 1);
-					execcmd (g->first->cmd, flg);
-				} else {
-					if ( i != flg->numPipe){
-						close ( fd [i][1] );
-					}
-						waitpid (pidp, &status, 0);
-				}
-				g->first = g->first->next;
-			}
+		if ( !(pid = fork() ) )
+		{
+			StartPipe (g, flg);	
 			exit (1);
 		}
 	if ( !(flg)->bg )
@@ -693,16 +695,15 @@ int main()
 	struct checkers *flg;
 	struct all *general;
 	char *cwd = getcwd(NULL, 0);
-	int i=0;
 
 	flg = (struct checkers*)malloc(sizeof(struct checkers));
 	flg->exit = OFF;
 	while ( flg->exit == OFF ) {
 		general = (struct all*)malloc(sizeof(struct all));
-		printf ("\n%s %d @ ", cwd, i++ );
+		printf ("\n%s @ ", cwd);
 		ReadCommand (general, flg);
 		if ( flg->error == OFF ){
-			PipeStart (general, flg);
+			StartCmd (general, flg);
 		}
 		FreeLng (&general);
 		waitzombie ();
