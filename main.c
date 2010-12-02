@@ -79,10 +79,11 @@ void execcmd (struct all *g, struct frame *primary,
 
 void StartPipe (struct all *g, struct checkers *flg)
 {
-	int i;
+	int i, j;
 	int pid[flg->numPipe+1][2];
 	int fd[flg->numPipe][2];
 	struct lng * t_g;
+	int tmp;
 	
 	t_g = g->first;
 
@@ -132,9 +133,23 @@ void StartPipe (struct all *g, struct checkers *flg)
 	close (fd[i-1][1]);
 
 	if ( flg->bg == 0 )
-		for ( i = 0; i <= flg->numPipe; i++ )
-			waitpid (pid[i][0], &pid[i][1], 0);
+	{
 
+		j = 0;
+		while ( flg->numPipe +1 != 0 )
+		{ 
+			tmp = waitpid (-1, &pid[i][1], WNOHANG);
+			for ( i = 0; i <= flg->numPipe; i++)
+			{
+				if ( tmp == pid[i][0] )
+				{
+					pid[i][0] = pid[flg->numPipe][0];
+					flg->numPipe--;
+					j++;
+				}
+			}
+		} 
+	}
 	g->first = t_g;
 }
 	
