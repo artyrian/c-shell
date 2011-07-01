@@ -10,7 +10,8 @@ typedef enum
 {
 	H,
 	WORD,
-	DELIM
+	DELIM,
+	QUOTE
 } State;
 
 

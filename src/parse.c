@@ -6,6 +6,9 @@
 #include <string.h>
 
 
+void print_list (List *);
+int isword (int);
+int isdelim (int);
 ListElem * new_element (Buffer * buf);
 
 
@@ -22,6 +25,16 @@ void print_list (List * list)
 }
 
 
+int isword (int c)
+{
+	if ( isalpha (c) || isdigit (c) || c == '-' ) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 /* Return number of delim or 
 */
 int isdelim (int c)
@@ -34,7 +47,6 @@ int isdelim (int c)
 			return i;
 		}
 	}
-
 	return 0;
 }
 
@@ -184,7 +196,7 @@ ListElem * state_H (int c, State * CS, Buffer * buf)
 	if ( isspace (c) ) {
 		return NULL;
 	}
-	else if ( isdigit (c) || isalpha (c) ) {
+	else if ( isword (c) ) {
 		printf ("State changed: H->WORD.\n");
 		add_symbol (c, buf);
 		*CS = WORD;
@@ -194,6 +206,11 @@ ListElem * state_H (int c, State * CS, Buffer * buf)
 		printf ("State changed: H->DELIM.\n");
 		add_symbol (c, buf);
 		*CS = DELIM;
+		return NULL;
+	}
+	else if ( c == '"' ) {
+		printf ("Statge changed: H->QUOTE.\n")'
+		*CS = QUOTE;
 		return NULL;
 	}
 	return 0;
@@ -233,3 +250,19 @@ ListElem * state_DELIM (int c, State * CS, Buffer * buf)
 	}
 };
 
+
+/*
+state QUOTE
+*/
+ListElem * state_QUOTE (int c, State * CS, Buffer * buf)
+{
+	if ( c != '"' ) {
+		add_symbol (c, buf);
+		return NULL;
+	}
+	else {
+		printf ("State changed: QUOTE->H.\n");
+		*CS = H;
+		return new_element (buf);
+	}
+};
