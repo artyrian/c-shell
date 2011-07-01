@@ -27,7 +27,7 @@ void print_list (List * list)
 
 int isword (int c)
 {
-	if ( isalpha (c) || isdigit (c) || c == '-' ) {
+	if ( isalpha (c) || isdigit (c) || c == '-' || c == '.' ) {
 		return 1;
 	}
 	else {
@@ -55,7 +55,6 @@ ListElem * new_element (Buffer * buf)
 {
 	ListElem * new_elem = malloc (sizeof(ListElem));
 	new_elem->lexem = malloc (buf->cnt);
-	printf ("Now copy buffer: [%s].\n", buf->string);
 	strcpy (new_elem->lexem, buf->string);
 	new_elem->t_lex = LEX_WORD;
 	new_elem->lenght = buf->cnt;
@@ -73,13 +72,30 @@ Function, which initializate list for future cmd.
 */
 int init_list (List * list)
 {
-	printf ("Initalizating list...\n");
 	list->ptr = NULL;
-	printf ("List is ready for fill.\n");
+	list->count = 0;
 
 	return 0;
 }
 
+
+/*
+Function< which destroy list of lexems.
+*/
+int free_list (List * list)
+{
+	ListElem * cur = list->ptr;
+	ListElem * prev;
+
+	while ( cur != NULL ) {
+		prev = cur;
+		cur = cur->next;
+		free (prev->lexem);
+		free (prev);
+	}
+
+	return 0;
+}
 
 /*
 Function, which return 1 symbol from stdin.
@@ -95,8 +111,6 @@ Function, which add to list one element
 */
 int add_to_list (List * list, ListElem * list_elem)
 {
-	printf ("Add to list now.\n");
-
 	if ( list->ptr == NULL ) {
 		list->ptr = list_elem;
 	}
@@ -109,6 +123,7 @@ int add_to_list (List * list, ListElem * list_elem)
 		}
 		prev->next = list_elem;
 	}
+	++ list->count;
 
 	return 0;
 }
@@ -130,8 +145,9 @@ int fill_list (List * list)
 	init_buffer (buf);
 
 	while ( 1 ) {
-		if ( (c = get_symbol ()) == EOF ) {
-			fill_result = EOF;
+		c = get_symbol ();
+		if ( (c == EOF) || c == '\n' ) {
+			fill_result = c;
 			break;
 		}
 		if ( (list_elem = feed_symbol (c, &CS, buf)) != NULL ) {
@@ -193,23 +209,20 @@ state H
 */
 ListElem * state_H (int c, State * CS, Buffer * buf)
 {
-	if ( isspace (c) ) {
+	if ( isspace (c) || c == EOF ) {
 		return NULL;
 	}
 	else if ( isword (c) ) {
-		printf ("State changed: H->WORD.\n");
 		add_symbol (c, buf);
 		*CS = WORD;
 		return NULL;
 	}
 	else if ( isdelim (c) ) {
-		printf ("State changed: H->DELIM.\n");
 		add_symbol (c, buf);
 		*CS = DELIM;
 		return NULL;
 	}
 	else if ( c == '"' ) {
-		printf ("Statge changed: H->QUOTE.\n")'
 		*CS = QUOTE;
 		return NULL;
 	}
@@ -222,12 +235,11 @@ state WORD
 */
 ListElem * state_WORD (int c, State * CS, Buffer * buf)
 {
-	if ( isdigit (c) || isalpha (c) ) {
+	if ( isword (c) ) {
 		add_symbol (c, buf);
 		return NULL;
 	}
 	else {
-		printf ("State changed: WORD->H.\n");
 		*CS = H;
 		return new_element (buf);
 	}
@@ -244,7 +256,6 @@ ListElem * state_DELIM (int c, State * CS, Buffer * buf)
 		return NULL;
 	}
 	else {
-		printf ("State changed: DELIM->H.\n");
 		*CS = H;
 		return new_element (buf);
 	}
@@ -261,7 +272,6 @@ ListElem * state_QUOTE (int c, State * CS, Buffer * buf)
 		return NULL;
 	}
 	else {
-		printf ("State changed: QUOTE->H.\n");
 		*CS = H;
 		return new_element (buf);
 	}

@@ -52,12 +52,14 @@ Structure of list elements.
 typedef struct
 {
 	ListElem * ptr;
+	int count;
 } List;
 
 
 void print_list (List *);
-int init_list (List *);	// --
-int get_symbol ();	// ++
+int init_list (List *);
+int free_list (List *);
+int get_symbol ();
 int add_to_list (List *, ListElem *);// --
 int fill_list (List *);	// +-
 ListElem * feed_symbol (int, State *, Buffer *);
