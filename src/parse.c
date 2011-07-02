@@ -14,7 +14,7 @@ ListElem * new_element (Buffer * buf);
 
 void print_list (List * list)
 {
-	ListElem * cur = list->ptr;
+	ListElem * cur = list->cmd;
 
 	printf ("List of lexems:\n");
 	while ( cur != NULL ) {
@@ -72,7 +72,7 @@ Function, which initializate list for future cmd.
 */
 int init_list (List * list)
 {
-	list->ptr = NULL;
+	list->cmd = NULL;
 	list->count = 0;
 
 	return 0;
@@ -84,7 +84,7 @@ Function< which destroy list of lexems.
 */
 int free_list (List * list)
 {
-	ListElem * cur = list->ptr;
+	ListElem * cur = list->cmd;
 	ListElem * prev;
 
 	while ( cur != NULL ) {
@@ -111,11 +111,11 @@ Function, which add to list one element
 */
 int add_to_list (List * list, ListElem * list_elem)
 {
-	if ( list->ptr == NULL ) {
-		list->ptr = list_elem;
+	if ( list->cmd == NULL ) {
+		list->cmd = list_elem;
 	}
 	else {
-		ListElem * cur = list->ptr;
+		ListElem * cur = list->cmd;
 		ListElem * prev;
 		while ( cur != NULL ) {
 			prev = cur;

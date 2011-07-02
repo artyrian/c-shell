@@ -51,7 +51,7 @@ Structure of list elements.
 */
 typedef struct
 {
-	ListElem * ptr;
+	ListElem * cmd;
 	int count;
 } List;
 
