@@ -49,10 +49,12 @@ typedef struct TagListElem
 /*
 Structure of list elements.
 */
-typedef struct
+typedef struct TagList
 {
 	ListElem * ptr;
+	Type_lex t_lex;
 	int count;
+	struct TagList * next;
 } List;
 
 
