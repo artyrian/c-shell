@@ -24,16 +24,16 @@ char ** convert_list (List * list)
 		if ( cur->t_lex == LEX_WORD ) {
 			array [i++] = cur->lexem;
 		}
-		else if ( cur->lex == LEX_READ ) {
+		else if ( cur->t_lex == LEX_READ ) {
 
 		}
-		else if ( cur->lex == LEX_WRITE ) {
+		else if ( cur->t_lex == LEX_WRITE ) {
 
 		}
-		else if ( cur->lex == LEX_APPEND ) {
+		else if ( cur->t_lex == LEX_APPEND ) {
 
 		}
-		else if ( cur->lex == LEX_PIPE ) {
+		else if ( cur->t_lex == LEX_PIPE ) {
 
 		}
 		cur = cur->next;
