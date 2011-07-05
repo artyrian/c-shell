@@ -37,13 +37,13 @@ typedef enum
 /*
 Structure of one element of list
 */
-typedef struct TagListElem
+typedef struct TagListWord
 {
 	char * lexem;
 	Type_lex t_lex;
 	int lenght;
-	struct TagListElem * next;
-} ListElem;
+	struct TagListWord * next;
+} ListWord;
 
 
 /*
@@ -51,10 +51,10 @@ Structure of list elements.
 */
 typedef struct TagList
 {
-	ListElem * cmd;
-	Type_lex t_lex;
+	ListWord * cmd;
+//	Type_lex t_lex;
 	int count;
-	struct TagList * next;
+//	struct TagList * next;
 } List;
 
 
@@ -62,12 +62,12 @@ void print_list (List *);
 int init_list (List *);
 int free_list (List *);
 int get_symbol ();
-int add_to_list (List *, ListElem *);// --
+int add_to_list (List *, ListWord *);// --
 int fill_list (List *);	// +-
-ListElem * feed_symbol (int, State *, Buffer *);
-ListElem * step (int c, State *, Buffer *);
-ListElem * state_H (int, State *, Buffer *);
-ListElem * state_WORD (int, State *, Buffer *);
-ListElem * state_DELIM (int, State *, Buffer *);
+ListWord * feed_symbol (int, State *, Buffer *);
+ListWord * step (int c, State *, Buffer *);
+ListWord * state_H (int, State *, Buffer *);
+ListWord * state_WORD (int, State *, Buffer *);
+ListWord * state_DELIM (int, State *, Buffer *);
 
 #endif

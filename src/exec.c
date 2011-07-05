@@ -9,12 +9,46 @@
 #include <sys/wait.h>
 
 
+
+/*
+Function, which check syntax analyze of list
+and create arrays.
+*/
+void  syntax_analyze ( )
+{
+	printf ("Start syntax analyze:\n");
+	BEGIN ();
+	printf ("Syntax analyze is OK.\n");
+}
+
+
+/*
+*/
+void BEGIN (ListElem * cur)
+{
+	if ( cur->t_lex == WORD ) {
+		WORD ()
+	}
+	else {
+		printf ("Syntax error: wait word in BEGIN ()");
+	}
+}
+
+
+/*
+*/
+void WORD ()
+{
+
+}
+
+
 /*
 Fucntion, which create from list  a array of array ptrs.
 */
 char ** convert_list (List * list)
 {
-	ListElem * cur = list->cmd;
+	ListWord * cur = list->cmd;
 	char ** array = malloc ( (list->count + 1) * sizeof (char *));
 	int i = 0;
 

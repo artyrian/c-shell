@@ -9,12 +9,12 @@
 void print_list (List *);
 int isword (int);
 int isdelim (int);
-ListElem * new_element (Buffer * buf);
+ListWord * new_element (Buffer * buf);
 
 
 void print_list (List * list)
 {
-	ListElem * cur = list->cmd;
+	ListWord * cur = list->cmd;
 
 	printf ("List of lexems:\n");
 	while ( cur != NULL ) {
@@ -51,9 +51,9 @@ int isdelim (int c)
 }
 
 
-ListElem * new_element (Buffer * buf)
+ListWord * new_element (Buffer * buf)
 {
-	ListElem * new_elem = malloc (sizeof(ListElem));
+	ListWord * new_elem = malloc (sizeof(ListWord));
 	new_elem->lexem = malloc (buf->cnt);
 	strcpy (new_elem->lexem, buf->string);
 	new_elem->t_lex = LEX_WORD;
@@ -74,6 +74,7 @@ int init_list (List * list)
 {
 	list->cmd = NULL;
 	list->count = 0;
+	list->next = NULL;
 
 	return 0;
 }
@@ -84,8 +85,8 @@ Function< which destroy list of lexems.
 */
 int free_list (List * list)
 {
-	ListElem * cur = list->cmd;
-	ListElem * prev;
+	ListWord * cur = list->cmd;
+	ListWord * prev;
 
 	while ( cur != NULL ) {
 		prev = cur;
@@ -96,6 +97,7 @@ int free_list (List * list)
 
 	return 0;
 }
+
 
 /*
 Function, which return 1 symbol from stdin.
@@ -109,14 +111,14 @@ int get_symbol ()
 /*
 Function, which add to list one element
 */
-int add_to_list (List * list, ListElem * list_elem)
+int add_to_list (List * list, ListWord * list_elem)
 {
 	if ( list->cmd == NULL ) {
 		list->cmd = list_elem;
 	}
 	else {
-		ListElem * cur = list->cmd;
-		ListElem * prev;
+		ListWord * cur = list->cmd;
+		ListWord * prev;
 		while ( cur != NULL ) {
 			prev = cur;
 			cur = cur->next;
@@ -138,7 +140,7 @@ int fill_list (List * list)
 {
 	int c;			// symbol from input;
 	int fill_result = 0; 	// return value;
-	ListElem * list_elem = NULL;
+	ListWord * list_elem = NULL;
 	State CS = H;
 	Buffer * buf = malloc (sizeof (Buffer));
 
@@ -170,9 +172,9 @@ and try create 1 lexem.
 Return: 0 if lexem not ready.
 	1 if lexem ready.
 */
-ListElem * feed_symbol (int c, State * ptr_CS, Buffer * buf)
+ListWord * feed_symbol (int c, State * ptr_CS, Buffer * buf)
 {
-	ListElem * ptr_elem = NULL;
+	ListWord * ptr_elem = NULL;
 
 	ptr_elem = step (c, ptr_CS, buf);
 
@@ -187,7 +189,7 @@ ListElem * feed_symbol (int c, State * ptr_CS, Buffer * buf)
 /*
 Function, which take 1 step of lex. automate.
 */
-ListElem * step (int c, State * ptr_CS, Buffer * buf)
+ListWord * step (int c, State * ptr_CS, Buffer * buf)
 {
 	switch ( *ptr_CS ) {
 	case H:
@@ -207,7 +209,7 @@ ListElem * step (int c, State * ptr_CS, Buffer * buf)
 /*
 state H
 */
-ListElem * state_H (int c, State * CS, Buffer * buf)
+ListWord * state_H (int c, State * CS, Buffer * buf)
 {
 	if ( isspace (c) || c == EOF ) {
 		return NULL;
@@ -233,7 +235,7 @@ ListElem * state_H (int c, State * CS, Buffer * buf)
 /*
 state WORD
 */
-ListElem * state_WORD (int c, State * CS, Buffer * buf)
+ListWord * state_WORD (int c, State * CS, Buffer * buf)
 {
 	if ( isword (c) ) {
 		add_symbol (c, buf);
@@ -249,7 +251,7 @@ ListElem * state_WORD (int c, State * CS, Buffer * buf)
 /*
 state DELIM
 */
-ListElem * state_DELIM (int c, State * CS, Buffer * buf)
+ListWord * state_DELIM (int c, State * CS, Buffer * buf)
 {
 	if ( isdelim (c) ) {
 		add_symbol (c, buf);
@@ -265,7 +267,7 @@ ListElem * state_DELIM (int c, State * CS, Buffer * buf)
 /*
 state QUOTE
 */
-ListElem * state_QUOTE (int c, State * CS, Buffer * buf)
+ListWord * state_QUOTE (int c, State * CS, Buffer * buf)
 {
 	if ( c != '"' ) {
 		add_symbol (c, buf);
