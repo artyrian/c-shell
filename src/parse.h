@@ -54,7 +54,7 @@ Structure of list elements.
 */
 typedef struct TagList
 {
-	ListElem * ptr;
+	ListElem * cmd;
 	Type_lex t_lex;
 	int count;
 	struct TagList * next;

@@ -14,14 +14,28 @@ Fucntion, which create from list  a array of array ptrs.
 */
 char ** convert_list (List * list)
 {
-	ListElem * cur = list->ptr;
+	ListElem * cur = list->cmd;
 	char ** array = malloc ( (list->count + 1) * sizeof (char *));
 	int i = 0;
 
 	printf ("Convert list to array.\n");
 
 	while ( cur != NULL ) {
-		array [i++] = cur->lexem;
+		if ( cur->t_lex == LEX_WORD ) {
+			array [i++] = cur->lexem;
+		}
+		else if ( cur->t_lex == LEX_READ ) {
+
+		}
+		else if ( cur->t_lex == LEX_WRITE ) {
+
+		}
+		else if ( cur->t_lex == LEX_APPEND ) {
+
+		}
+		else if ( cur->t_lex == LEX_PIPE ) {
+
+		}
 		cur = cur->next;
 	}
 	array [i] = NULL;
