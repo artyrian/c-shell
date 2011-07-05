@@ -11,7 +11,9 @@ typedef enum
 	H,
 	WORD,
 	DELIM,
-	QUOTE
+	QUOTE,
+	BSLASH,
+	BSLASH2
 } State;
 
 
@@ -29,7 +31,8 @@ typedef enum
 	LEX_APPEND,
 	LEX_AND,
 	LEX_OR,
-	LEX_QUOTE
+	LEX_QUOTE,
+	LEX_BSLAH
 } Type_lex;
 
 
@@ -64,10 +67,23 @@ int free_list (List *);
 int get_symbol ();
 int add_to_list (List *, ListWord *);// --
 int fill_list (List *);	// +-
+/*
+<<<<<<< HEAD
 ListWord * feed_symbol (int, State *, Buffer *);
 ListWord * step (int c, State *, Buffer *);
 ListWord * state_H (int, State *, Buffer *);
 ListWord * state_WORD (int, State *, Buffer *);
 ListWord * state_DELIM (int, State *, Buffer *);
+=======
+*/
+ListElem * feed_symbol (int, State *, Buffer *);
+ListElem * step (int c, State *, Buffer *);
+ListElem * state_H (int, State *, Buffer *);
+ListElem * state_WORD (int, State *, Buffer *);
+ListElem * state_DELIM (int, State *, Buffer *);
+ListElem * state_QUOTE (int, State *, Buffer *);
+ListElem * state_BSLASH (int, State *, Buffer *);
+ListElem * state_BSLASH2 (int, State *, Buffer *);
+//>>>>>>> a55a597bda2247dbb2f11a200d7357f71f24d638
 
 #endif
