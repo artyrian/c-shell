@@ -196,6 +196,10 @@ ListElem * step (int c, State * ptr_CS, Buffer * buf)
 		return state_WORD (c, ptr_CS, buf);
 	case DELIM:
 		return state_DELIM (c, ptr_CS, buf);
+	case QUOTE:
+		return state_QUOTE (c, ptr_CS, buf);
+	case BSLASH:
+		return state_BSLASH (c, ptr_CS, buf);
 	default:
 		*ptr_CS = H;
 		printf ("Error situation. Default branch in switch.\n");
@@ -226,7 +230,11 @@ ListElem * state_H (int c, State * CS, Buffer * buf)
 		*CS = QUOTE;
 		return NULL;
 	}
-	return 0;
+	else if ( c == '\\') {
+		*CS = BSLASH;
+		return NULL;
+	}
+	return NULL;
 };
 
 
@@ -271,8 +279,49 @@ ListElem * state_QUOTE (int c, State * CS, Buffer * buf)
 		add_symbol (c, buf);
 		return NULL;
 	}
-	else {
+	else if ( c == '"' ) {
 		*CS = H;
 		return new_element (buf);
 	}
+};
+
+
+/*
+state BSLASH 
+*/
+ListElem * state_BSLASH (int c, State * CS, Buffer * buf)
+{
+	add_symbol (c, buf);
+	*CS = BSLASH2;
+	return NULL;
+};
+
+
+/*
+state BSLASH2
+*/
+ListElem * state_BSLASH2 (int c, State * CS, Buffer * buf)
+{
+	if ( isspace (c) || c == EOF ) {
+		return new_element (buf);
+	}
+	else if ( isword (c) ) {
+		add_symbol (c, buf);
+		*CS = WORD;
+		return NULL;
+	}
+	else if ( isdelim (c) ) {
+		add_symbol (c, buf);
+		*CS = DELIM;
+		return NULL;
+	}
+	else if ( c == '"' ) {
+		*CS = QUOTE;
+		return NULL;
+	}
+	else if ( c == '\\') {
+		*CS = BSLASH;
+		return NULL;
+	}
+	return NULL;
 };

@@ -11,7 +11,9 @@ typedef enum
 	H,
 	WORD,
 	DELIM,
-	QUOTE
+	QUOTE,
+	BSLASH,
+	BSLASH2
 } State;
 
 
@@ -29,7 +31,8 @@ typedef enum
 	LEX_APPEND,
 	LEX_AND,
 	LEX_OR,
-	LEX_QUOTE
+	LEX_QUOTE,
+	LEX_BSLAH
 } Type_lex;
 
 
@@ -69,5 +72,8 @@ ListElem * step (int c, State *, Buffer *);
 ListElem * state_H (int, State *, Buffer *);
 ListElem * state_WORD (int, State *, Buffer *);
 ListElem * state_DELIM (int, State *, Buffer *);
+ListElem * state_QUOTE (int, State *, Buffer *);
+ListElem * state_BSLASH (int, State *, Buffer *);
+ListElem * state_BSLASH2 (int, State *, Buffer *);
 
 #endif
